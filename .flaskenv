@@ -1,2 +1,2 @@
-FLASK_APP=myapp
+FLASK_APP=app.py
 FLASK_ENV=development # enables debug mode
