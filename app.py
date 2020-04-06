@@ -57,6 +57,55 @@ class Artist(db.Model):
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
 
+
+class Show(db.Model):
+    __tablename__ = 'Show'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+
+class TalentSeeking(db.Model):
+    __tablename__ = 'TalentSeeking'
+
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text)
+
+
+class VenueSeeking(db.Model):
+    __tablename__ = 'VenueSeeking'
+
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.Text)
+
+
+class Genre(db.Model):
+    __tablename__ = 'Genre'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+
+class Address(db.Model):
+    __tablename__ = 'Address'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+
+class City(db.Model):
+    __tablename__ = 'City'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+
+class State(db.Model):
+    __tablename__ = 'State'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 
