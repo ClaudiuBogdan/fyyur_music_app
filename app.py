@@ -23,26 +23,57 @@ moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 
-
 # COMPLETED: connect to a local postgresql database
 
 # ----------------------------------------------------------------------------#
 # Models.
 # ----------------------------------------------------------------------------#
 
+venue_genres = db.Table('Venue_Genres',
+                        db.Column('venue_id',
+                                  db.Integer,
+                                  db.ForeignKey('Venue.id'),
+                                  primary_key=True),
+                        db.Column('genre_id',
+                                  db.Integer,
+                                  db.ForeignKey('Genre.id'),
+                                  primary_key=True))
+
+artist_genres = db.Table('Artist_Genres',
+                         db.Column('artist_id',
+                                   db.Integer,
+                                   db.ForeignKey('Artist.id'),
+                                   primary_key=True),
+                         db.Column('genre_id',
+                                   db.Integer,
+                                   db.ForeignKey('Genre.id'),
+                                   primary_key=True))
+
+
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(120))
-
+    # Relationships
+    address_id = db.Column(db.Integer,
+                           db.ForeignKey('Address.id'),
+                           nullable=False)
+    seeking_talent = db.relationship("Talent_Seeking",
+                                     backref=db.backref("venue", uselist=False),
+                                     cascade='all, delete-orphan',
+                                     passive_deletes=True)
+    genres = db.relationship('Genre',
+                             secondary=venue_genres,
+                             backref=db.backref('venues'))
+    shows = db.relationship('Show',
+                            backref='venue',
+                            cascade='all, delete-orphan',
+                            passive_deletes=True)
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 
@@ -51,34 +82,61 @@ class Artist(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(120))
+    # Relationships
+    city_id = db.Column(db.Integer,
+                        db.ForeignKey('City.id'),
+                        nullable=False)
+    seeking_venue = db.relationship("Venue_Seeking",
+                                    backref=db.backref("artist", uselist=False),
+                                    cascade='all, delete-orphan', passive_deletes=True)
+    genres = db.relationship('Genre',
+                             secondary=artist_genres,
+                             backref=db.backref('artists'))
+    shows = db.relationship('Show',
+                            backref='artist',
+                            cascade='all, delete-orphan', passive_deletes=True)
 
 
 class Show(db.Model):
     __tablename__ = 'Show'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    start_time = db.Column(db.Date)
+    # Relationships
+    venue_id = db.Column(db.Integer,
+                         db.ForeignKey('Venue_Seeking.id', ondelete="cascade"),
+                         nullable=True)
+    artist_id = db.Column(db.Integer,
+                          db.ForeignKey('Venue_Seeking.id', ondelete="cascade"),
+                          nullable=True)
 
 
 class TalentSeeking(db.Model):
-    __tablename__ = 'TalentSeeking'
+    __tablename__ = 'Talent_Seeking'
 
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
+
+    venue_id = db.Column(db.Integer,
+                         db.ForeignKey('Venue.id', ondelete="cascade"),
+                         nullable=False)
+    venue = db.relationship("Venue",
+                            backref=db.backref("seeking_talent", uselist=False))
 
 
 class VenueSeeking(db.Model):
-    __tablename__ = 'VenueSeeking'
+    __tablename__ = 'Venue_Seeking'
 
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
+    artist_id = db.Column(db.Integer,
+                          db.ForeignKey('Venue_Seeking.id', ondelete='cascade'),
+                          nullable=False)
+    artist = db.relationship("Artist", backref=db.backref("seeking_venue", uselist=False))
 
 
 class Genre(db.Model):
@@ -93,6 +151,11 @@ class Address(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    # Relationships
+    city_id = db.Column(db.Integer,
+                        db.ForeignKey('City.id', ondelete='cascade'),
+                        nullable=False)
+    venues = db.relationship('Venue', backref='address')
 
 
 class City(db.Model):
@@ -100,6 +163,15 @@ class City(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    # Relationships
+    state_id = db.Column(db.Integer,
+                         db.ForeignKey('State.id', ondelete='cascade'),
+                         nullable=False)
+    addresses = db.relationship('Address',
+                                backref='city',
+                                cascade='all, delete-orphan', passive_deletes=True)
+    artists = db.relationship('Artist',
+                              backref='city')
 
 
 class State(db.Model):
@@ -107,6 +179,10 @@ class State(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    # Relationships
+    cities = db.relationship('City',
+                             backref='state',
+                             cascade='all, delete-orphan', passive_deletes=True)
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
