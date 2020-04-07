@@ -64,7 +64,8 @@ class Venue(db.Model):
                            db.ForeignKey('Address.id'),
                            nullable=False)
     seeking_talent = db.relationship("Talent_Seeking",
-                                     backref=db.backref("venue", uselist=False),
+                                     uselist=False,
+                                     backref=db.backref("venue"),
                                      cascade='all, delete-orphan',
                                      passive_deletes=True)
     genres = db.relationship('Genre',
@@ -74,7 +75,7 @@ class Venue(db.Model):
                             backref='venue',
                             cascade='all, delete-orphan',
                             passive_deletes=True)
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    # COMPLETED: implement any missing fields, as a database migration using Flask-Migrate
 
 
 class Artist(db.Model):
@@ -91,8 +92,10 @@ class Artist(db.Model):
                         db.ForeignKey('City.id'),
                         nullable=False)
     seeking_venue = db.relationship("Venue_Seeking",
-                                    backref=db.backref("artist", uselist=False),
-                                    cascade='all, delete-orphan', passive_deletes=True)
+                                    uselist=False,
+                                    backref=db.backref("artist"),
+                                    cascade='all, delete-orphan',
+                                    passive_deletes=True)
     genres = db.relationship('Genre',
                              secondary=artist_genres,
                              backref=db.backref('artists'))
@@ -108,14 +111,14 @@ class Show(db.Model):
     start_time = db.Column(db.Date)
     # Relationships
     venue_id = db.Column(db.Integer,
-                         db.ForeignKey('Venue_Seeking.id', ondelete="cascade"),
+                         db.ForeignKey('Venue.id', ondelete="cascade"),
                          nullable=True)
     artist_id = db.Column(db.Integer,
-                          db.ForeignKey('Venue_Seeking.id', ondelete="cascade"),
+                          db.ForeignKey('Artist.id', ondelete="cascade"),
                           nullable=True)
 
 
-class TalentSeeking(db.Model):
+class Talent_Seeking(db.Model):
     __tablename__ = 'Talent_Seeking'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -124,19 +127,16 @@ class TalentSeeking(db.Model):
     venue_id = db.Column(db.Integer,
                          db.ForeignKey('Venue.id', ondelete="cascade"),
                          nullable=False)
-    venue = db.relationship("Venue",
-                            backref=db.backref("seeking_talent", uselist=False))
 
 
-class VenueSeeking(db.Model):
+class Venue_Seeking(db.Model):
     __tablename__ = 'Venue_Seeking'
 
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
     artist_id = db.Column(db.Integer,
-                          db.ForeignKey('Venue_Seeking.id', ondelete='cascade'),
+                          db.ForeignKey('Artist.id', ondelete='cascade'),
                           nullable=False)
-    artist = db.relationship("Artist", backref=db.backref("seeking_venue", uselist=False))
 
 
 class Genre(db.Model):
@@ -184,7 +184,7 @@ class State(db.Model):
                              backref='state',
                              cascade='all, delete-orphan', passive_deletes=True)
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
+    # COMPLETED: implement any missing fields, as a database migration using Flask-Migrate
 
 
 # COMPLETED Implement Show and Artist models,
@@ -250,7 +250,7 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
+    # COMPLETED: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
     response = {
