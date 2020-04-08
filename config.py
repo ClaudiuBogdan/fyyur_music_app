@@ -18,7 +18,7 @@ SQL_USER = environ.get('SQL_USER')
 SQL_PASSWORD = environ.get('SQL_PASSWORD')
 SQL_DATABASE = environ.get('SQL_DATABASE')
 
-# TODO IMPLEMENT DATABASE URL
+# COMPLETED IMPLEMENT DATABASE URL
 SQLALCHEMY_DATABASE_URI = 'postgresql://' \
                           '{user}:{password}@' \
                           'localhost:5432/' \
