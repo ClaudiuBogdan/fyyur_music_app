@@ -711,28 +711,64 @@ def edit_artist_submission(artist_id):
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
     form = VenueForm()
+
+    venue_instance = Venue.query.get(venue_id)
+
+    if not venue_instance:
+        return abort(404)
+
+    form.genres.default = format_genres(venue_instance.genres)
+    form.process()
+
     venue = {
-        "id": 1,
-        "name": "The Musical Hop",
-        "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-        "address": "1015 Folsom Street",
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "123-123-1234",
-        "website": "https://www.themusicalhop.com",
-        "facebook_link": "https://www.facebook.com/TheMusicalHop",
-        "seeking_talent": True,
-        "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-        "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60"
+        "id": venue_instance.id,
+        "name": venue_instance.name,
+        "phone": venue_instance.phone,
+        "website": venue_instance.website if venue_instance.website else '',
+        "facebook_link": venue_instance.facebook_link if venue_instance.facebook_link else '',
+        "image_link": venue_instance.image_link if venue_instance.image_link else '',
+        "genres": format_genres(venue_instance.genres),
+        "address": venue_instance.address.name,
+        "city": venue_instance.address.city.name,
+        "state": venue_instance.address.city.state.name,
+        "seeking_venue": True if venue_instance.seeking_talent else False,
+        "seeking_description": venue_instance.seeking_talent.description if venue_instance.seeking_talent else None,
     }
-    # TODO: populate form with values from venue with ID <venue_id>
+
+    # COMPLETED: populate form with values from venue with ID <venue_id>
     return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-    # TODO: take values from the form submitted, and update existing
+    # COMPLETED: take values from the form submitted, and update existing
     # venue record with ID <venue_id> using the new attributes
+
+    city = request.form.get('city', '')
+    state = request.form.get('state', '')
+    genres = request.form.getlist('genres')
+
+    try:
+        venue = Venue.query.get(venue_id)
+        venue.name = request.form.get('name', '')
+        venue.phone = request.form.get('phone', '')
+        venue.website = request.form.get('website', '')
+        venue.facebook_link = request.form.get('facebook_link', '')
+        # venue.image_link = request.form.get('image_link', '') # View not implemented
+
+        venue.genres = find_genres_or_create(genres, False)
+        venue.city = find_city_or_create(city, state, False)
+
+        # artist.seeking_venue = request.form.get('image_link', '') # View not implemented
+        db.session.add(venue)
+        db.session.commit()
+
+        # on successful db insert, flash success
+        flash('Venue ' + str(venue_id) + ' was successfully edited!')
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        flash('An error occurred. Venue ' + str(venue_id) + ' could not be edited.')
+
     return redirect(url_for('show_venue', venue_id=venue_id))
 
 
@@ -773,7 +809,7 @@ def create_artist_submission():
         flash('Artist ' + request.form['name'] + ' was successfully listed!')
     except SQLAlchemyError as e:
         db.session.rollback()
-        # TODO: on unsuccessful db insert, flash an error instead.
+        # COMPLETED: on unsuccessful db insert, flash an error instead.
         flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
 
     return render_template('pages/home.html')
