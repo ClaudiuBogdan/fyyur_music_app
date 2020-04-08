@@ -12,6 +12,9 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
+from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
+
 from forms import *
 
 # ----------------------------------------------------------------------------#
@@ -208,14 +211,14 @@ def format_datetime(value, format='medium'):
 app.jinja_env.filters['datetime'] = format_datetime
 
 
-def findCityInList(city, citiesList):
-    return next((item for item in citiesList if item.id == city.id), None)
+def find_by_prop(item_arg, items_list, prop):
+    return next((item for item in items_list if getattr(item, prop) == item_arg), None)
 
 
-def reduceVenuesByCity(venues):
+def reduce_venues_by_city(venues):
     cities = []
     for venue in venues:
-        city = findCityInList(venue.address.city, cities)
+        city = find_by_prop(venue.address.city.id, cities, 'id')
         if (city):
             city.venues.append(venue)
         else:
@@ -281,6 +284,104 @@ def format_shows(shows):
 
 
 # ----------------------------------------------------------------------------#
+# Providers.
+# ----------------------------------------------------------------------------#
+
+def find_address_or_create(address, city, state):
+    new_address = find_address(address, city, state)
+    if not new_address:
+        new_address = create_address(address, city, state)
+    return new_address
+
+
+def find_address(address, city, state):
+    address_instance = Address \
+        .query \
+        .filter_by(name=address) \
+        .join(City, City.name == city) \
+        .join(State, State.name == state) \
+        .first()
+    return address_instance
+
+
+def create_address(address, city, state):
+    address_instance = Address \
+        .query \
+        .filter_by(name=address) \
+        .join(City, City.name == city) \
+        .join(State, State.name == state) \
+        .first()
+
+    if address_instance:
+        return address_instance
+
+    state_instance = State \
+        .query \
+        .filter_by(name=state) \
+        .first()
+
+    if not state_instance:
+        new_address = Address(name=address)
+        new_city = City(name=city)
+        new_state = State(name=state)
+
+        new_address.city = new_city
+        new_city.state = new_state
+
+        db.session.add(new_state)
+        db.session.commit()
+        return new_address
+
+    city_instance = City.query \
+        .filter_by(name=city) \
+        .join(State, State.name == state) \
+        .first()
+
+    if not city_instance:
+        new_address = Address(name=address)
+        new_city = City(name=city)
+        new_address.city = new_city
+        new_city.state = state_instance
+        db.session.add(new_city)
+        db.session.commit()
+        return new_address
+
+    new_address = Address(name=address)
+    new_address.city = city_instance
+    db.session.add(new_address)
+    db.session.commit()
+    return new_address
+
+
+def find_genres_or_create(genres):
+    if not genres:
+        return []
+
+    filter_args = or_(*map(lambda genre_name: Genre.name == genre_name, genres))
+    genres_instance = Genre.query.filter(filter_args).all()
+
+    for genre in genres:
+        has_genre = find_by_prop(genre, genres_instance, 'name')
+        if not has_genre:
+            new_genre = create_genre(genre)
+            genres_instance.append(new_genre)
+    return genres_instance
+
+
+def create_genre(genre):
+    genre_instance = Genre \
+        .query \
+        .filter_by(name=genre) \
+        .first()
+    if genre_instance:
+        return genre_instance
+    new_genre = Genre(name=genre)
+    db.session.add(new_genre)
+    db.session.commit()
+    return new_genre
+
+
+# ----------------------------------------------------------------------------#
 # Controllers.
 # ----------------------------------------------------------------------------#
 
@@ -295,7 +396,7 @@ def index():
 @app.route('/venues')
 def venues():
     venues = Venue.query.all()
-    cities = reduceVenuesByCity(venues)
+    cities = reduce_venues_by_city(venues)
 
     data = []
 
@@ -311,7 +412,7 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-    # Completed: implement search on artists with partial string search. Ensure it is case-insensitive.
+    # COMPLETED: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
     search_term = request.form.get('search_term', '')
@@ -368,14 +469,32 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    # COMPLETED: insert form data as a new Venue record in the db, instead
+    # COMPLETED: modify data to be the data object returned from db insertion
+    address = request.form.get('address', '')
+    city = request.form.get('city', '')
+    state = request.form.get('state', '')
+    genres = request.form.getlist('genres')
 
-    # on successful db insert, flash success
-    flash('Venue ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    venue = Venue(
+        name=request.form.get('name', ''),
+        phone=request.form.get('phone', ''),
+        image_link=request.form.get('image_link', ''),
+        website=request.form.get('website', ''),
+        facebook_link=request.form.get('facebook_link', ''),
+        genres=find_genres_or_create(genres),
+        address=find_address_or_create(address, city, state)
+    )
+    try:
+        db.session.add(venue)
+        db.session.commit()
+        # on successful db insert, flash success
+        flash('Venue ' + request.form['name'] + ' was successfully listed!')
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        # COMPLETED: on unsuccessful db insert, flash an error instead.
+        flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+        # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
 
