@@ -41,19 +41,19 @@ def add_venues_seed():
     genres_list3 = [genre8, genre1, genre4, genre5]
 
     show1 = Show(
-        start_time=format_datetime("2019-05-21T21:30:00.000Z")
+        start_time=dateutil.parser.isoparse("2019-05-21T21:30:00.000Z")
     )
     show2 = Show(
-        start_time=format_datetime("2019-06-15T23:00:00.000Z")
+        start_time=dateutil.parser.isoparse("2019-06-15T23:00:00.000Z")
     )
     show3 = Show(
-        start_time=format_datetime("2035-04-01T20:00:00.000Z")
+        start_time=dateutil.parser.isoparse("2035-04-01T20:00:00.000Z")
     )
     show4 = Show(
-        start_time=format_datetime("2035-04-01T20:00:00.000Z")
+        start_time=dateutil.parser.isoparse("2035-04-01T20:00:00.000Z")
     )
     show5 = Show(
-        start_time=format_datetime("2035-04-15T20:00:00.000Z")
+        start_time=dateutil.parser.isoparse("2035-04-15T20:00:00.000Z")
     )
 
     seeking_talent1 = Talent_Seeking(
