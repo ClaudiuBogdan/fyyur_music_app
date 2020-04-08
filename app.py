@@ -146,7 +146,7 @@ class Genre(db.Model):
     __tablename__ = 'Genre'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, unique=True, index=True)
 
 
 class Address(db.Model):
@@ -181,7 +181,7 @@ class State(db.Model):
     __tablename__ = 'State'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, unique=True, index=True)
     # Relationships
     cities = db.relationship('City',
                              backref='state',
@@ -230,7 +230,7 @@ def reduce_venues_by_city(venues):
 def count_upcomping_shows(shows):
     count = 0
     for show in shows:
-        if show.start_time > datetime.now():  # TODO: Add datetime insted of date.
+        if show.start_time > datetime.now():
             count += 1
     return count
 
@@ -260,7 +260,7 @@ def filter_shows(shows):
         "upcoming_shows": []
     }
     for show in shows:
-        if show.start_time > datetime.now():  # TODO: Add datetime insted of date.
+        if show.start_time > datetime.now():
             shows_result["upcoming_shows"].append(show)
         else:
             shows_result["past_shows"].append(show)
